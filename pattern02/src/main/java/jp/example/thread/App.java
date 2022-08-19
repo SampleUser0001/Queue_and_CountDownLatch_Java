@@ -7,9 +7,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import jp.example.thread.enums.TaskTypeEnum;
 import jp.example.thread.model.TaskModel;
-import jp.example.thread.task.TaskA;
-import jp.example.thread.task.TaskB;
+import jp.example.thread.task.impl.TaskA;
+import jp.example.thread.task.impl.TaskB;
+import jp.example.thread.task.wrapper.FinishPooling;
+import jp.example.thread.task.wrapper.StartPooling;
 
 /**
  * Hello world!
@@ -20,36 +23,52 @@ public class App {
     public static final long WAIT_MILLISECOND = 500;
 
     public static final int THREAD_COUNT = 100;
-    public static final int TASK_COUNT = 3;
+    public static final int TASK_COUNT = 2;
 
-    public void exec(String[] args) {
+    public void exec(String[] args) throws InterruptedException {
         System.out.println("start : " + new Date());
-        List<TaskModel> taskList = new ArrayList<TaskModel>();
-        for( int i=0; i<TASK_COUNT ; i++ ) {
-            taskList.add(new TaskModel(i, "value : " + i , false , false));
+        ExecutorService taskAExec = Executors.newFixedThreadPool(1);
+        ExecutorService taskBExec = Executors.newFixedThreadPool(THREAD_COUNT);
+
+        Queue<TaskModel> queueAToB = new LinkedList<TaskModel>();
+
+        CountDownLatch countDownLatch = new CountDownLatch(TASK_COUNT);
+
+        for(int i=0;i<TASK_COUNT;i++ ) {
+            taskAExec.execute(
+                StartPooling.builder()
+                            .task(
+                                TaskA.builder()
+                                     .taskModel(new TaskModel(i, "value : " + i, false, false))
+                                     .build())
+                            .taskType(TaskTypeEnum.TaskA)
+                            .queue(queueAToB)
+                            .build()
+            );
         }
-        ExecutorService taskAExce = Executors.newFixedThreadPool(1);
-        ExecutorService taskBExce = Executors.newFixedThreadPool(2);
-        try {
-
-            for( int i=0; i<TASK_COUNT ; i++ ) {
-                taskAExce.execute(new TaskA(new TaskModel(i, "value : " + i), queueAtoB, countDownLatch));
-            }
-            taskBExce.execute(new TaskB(queueAtoB, countDownLatch));
-
-            taskAExce.shutdown();
-            taskBExce.shutdown();
-
-            countDownLatch.await();
-        } catch(InterruptedException e){
-            e.printStackTrace();
-        } finally {
-            System.out.println("finish : " + new Date());
+        for(int i=0;i<THREAD_COUNT;i++){
+            taskBExec.execute(
+                FinishPooling.builder()
+                             .task(
+                                TaskB.builder().build())
+                             .taskType(TaskTypeEnum.TaskB)
+                             .queue(queueAToB)
+                             .countDownLatch(countDownLatch)
+                             .build()
+            );
+            
         }
+        
+        taskAExec.shutdown();
+        taskBExec.shutdown();
 
+        countDownLatch.await();
+
+
+        System.out.println("finish : " + new Date());
     }
 
-    public static void main( String[] args ) {
+    public static void main( String[] args ) throws InterruptedException {
         new App().exec(args);
     }
 }

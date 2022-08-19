@@ -1,20 +1,31 @@
 package jp.example.thread.enums;
 
-public enum TaskEnum {
-    TaskA{
+import jp.example.thread.model.TaskModel;
+
+public enum TaskTypeEnum {
+    TaskA() {
         @Override
         public void finish(TaskModel task){
-            task.isFinishA(true);
+            task.setFinishA(true);
+        }
+        @Override
+        public boolean getFinishStatus(TaskModel task) {
+            return task.isFinishA();
         }
     },
-    TaskB{
+    TaskB() {
         @Override
         public void finish(TaskModel task){
-            task.isFinishB(true);
+            task.setFinishB(true);
         }
-    }
+        @Override
+        public boolean getFinishStatus(TaskModel task) {
+            return task.isFinishB();
+        }
+    };
 
     public abstract void finish(TaskModel task);
+    public abstract boolean getFinishStatus(TaskModel task);
 
-    private TaskEnum(){}
+    private TaskTypeEnum(){}
 }

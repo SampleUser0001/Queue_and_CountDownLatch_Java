@@ -1,19 +1,30 @@
-package jp.example.thread.task;
+package jp.example.thread.task.wrapper;
 
+import jp.example.thread.enums.TaskTypeEnum;
+import jp.example.thread.task.Task;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
 @AllArgsConstructor
-public class Pooling implements Runnable {
+public abstract class Pooling implements Runnable {
+    protected Task task;
+    protected TaskTypeEnum taskType;
 
-    private Runnable task;
-    private ExecutorService exec;
-    private TaskModel taskModel;
-    private int waitCount;
-    private TaskTypeEnum taskType;
-
-    public void run() {
-        exec.execute(task);
-        for(int i=0 ; i<this.waitCount ; i++) {
-            System.out.println("Pooling : " + taskModel);
+    public boolean taskExec() {
+        this.task.exec();
+        for(int i=0 ; i<this.task.execTime() ; i++) {
+            System.out.println("Pooling : " + this.task.getTaskModel());
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
-        this.taskType.finish(taskModel);
+        this.taskType.finish(this.task.getTaskModel());
+        System.out.println("Pooling Finish : " + this.task.getTaskModel());
+        return this.taskType.getFinishStatus(this.task.getTaskModel());
     }
+
 }
